@@ -119,9 +119,9 @@ def predict():
 
         if not changed_features:  
             # No changes → Use isolation model thresholds
-            if risk_score < -0.12:
+            if risk_score < -0.11:
                 risk_decision = "Allow"
-            elif -0.12 <= risk_score <= -0.05:
+            elif -0.11 <= risk_score <= -0.05:
                 risk_decision = "MFA"
             else:
                 risk_decision = "Block"
@@ -160,6 +160,39 @@ def predict():
             "total_risk_score": total_risk_score,
             "risk_score": risk_score
         })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+@app.route('/mfa_confirmed', methods=['POST'])
+def mfa_confirmed():
+    try:
+        data = request.json
+        userID = data.get("userID")
+        IPaddress = data.get("IPaddress")
+        Latitude = float(data.get("Latitude", 0.0))
+        Longitude = float(data.get("Longitude", 0.0))
+        Timezone = data.get("Timezone", "Unknown")
+        DeviceInfo = data.get("DeviceInfo", "Unknown")
+        TypingSpeed = float(data.get("TypingSpeed", 0.0))
+        MouseSpeed = float(data.get("MouseSpeed", 0.0))
+        LoginTime = datetime.utcnow()
+
+        new_attempt = LoginAttempt(
+            userID=userID,
+            IPaddress=IPaddress,
+            Latitude=Latitude,
+            Longitude=Longitude,
+            Timezone=Timezone,
+            DeviceInfo=DeviceInfo,
+            TypingSpeed=TypingSpeed,
+            MouseSpeed=MouseSpeed,
+            geo_velocity=0.0,  
+            LoginTime=LoginTime
+        )
+        db.session.add(new_attempt)
+        db.session.commit()
+
+        return jsonify({"message": "MFA confirmed, login attempt recorded."}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
